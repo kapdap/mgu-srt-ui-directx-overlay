@@ -204,11 +204,14 @@ namespace SRTPluginUIMGUDirectXOverlay
 
         private void RenderOverlay()
         {
+            Point textSize;
+
             int baseX = 10;
             int baseY = 10;
 
             int YOffset = baseY;
             int YHeight = 29;
+            int YSpace = 9;
 
             for (int i = 0; i < _gameMemory.Characters.Length; ++i)
             {
@@ -228,7 +231,7 @@ namespace SRTPluginUIMGUDirectXOverlay
                     healthBrush = _green;
 
                 int imageX = baseX;
-                int imageY = YOffset += CHR_SLOT_HEIGHT;
+                int imageY = YOffset += i > 0 ? CHR_SLOT_HEIGHT : 0;
 
                 int textX = imageX + CHR_SLOT_WIDTH + 2;
                 int textY = imageY + 1;
@@ -248,23 +251,25 @@ namespace SRTPluginUIMGUDirectXOverlay
                 drawRegion.Bottom += drawRegion.Top;
 
                 if (_characterToImageTranslation.ContainsKey(character.Character))
-                    _device?.DrawBitmap(_characterSheet, drawRegion, _opacity / 255, SharpDX.Direct2D1.BitmapInterpolationMode.Linear, imageRegion);
+                    _device?.DrawBitmap(_characterSheet, drawRegion, 1f, SharpDX.Direct2D1.BitmapInterpolationMode.Linear, imageRegion);
 
                 DrawProgressBar(_darkergrey, healthBrush, textX, textY, 172, 36, character.CurrentHP, character.MaximumHP);
                 _graphics?.DrawText(_consolas14Bold, _white, textX + 5, textY + 10, character.HealthMessage);
             }
 
             int timerX = baseX + 3;
-            int timerY = YOffset += 9;
+            int timerY = YOffset += CHR_SLOT_HEIGHT + YSpace;
 
             _graphics?.DrawText(_consolas32Bold, _white, timerX, timerY, _gameMemory.IGT.FormattedString);
+            textSize = _graphics.MeasureString(_consolas32Bold, _gameMemory.IGT.FormattedString);
 
             int headerX = baseX + 3;
-            int headerY = YOffset += 45;
+            int headerY = YOffset += (int)textSize.Y + YSpace;
 
             _graphics?.DrawText(_consolas16Bold, _red, headerX, headerY, "Enemy HP");
+            textSize = _graphics.MeasureString(_consolas16Bold, "Enemy HP");
 
-            YOffset += 25;
+            YOffset += (int)textSize.Y - YHeight + 6;
 
             for (int i = 0; i < _gameMemory.Enemy.Length; ++i)
             {
@@ -272,10 +277,10 @@ namespace SRTPluginUIMGUDirectXOverlay
 
                 if (!enemy.IsAlive) continue;
 
-                int healthX = baseX;
-                int healthY = YOffset += YHeight;
+                int healthX = baseX - 2;
+                int healthY = YOffset += i > 0 ? YHeight : 0;
 
-                DrawProgressBar(_darkergrey, _darkred, healthX, healthY, 212, YHeight, enemy.CurrentHP, enemy.MaximumHP);
+                DrawProgressBar(_darkergrey, _darkred, healthX, healthY, 216, YHeight, enemy.CurrentHP, enemy.MaximumHP);
                 _graphics?.DrawText(_consolas14Bold, _red, healthX + 5, healthY + 5, enemy.HealthMessage);
             }
         }
@@ -298,18 +303,19 @@ namespace SRTPluginUIMGUDirectXOverlay
                 y + height
             );
 
-            _graphics.FillRectangle(backBrush, backRect);
-            _graphics.FillRectangle(foreBrush, foreRect);
+            _graphics?.FillRectangle(backBrush, backRect);
+            _graphics?.FillRectangle(foreBrush, foreRect);
         }
 
         public void GenerateClipping()
         {
-            _characterToImageTranslation = new Dictionary<CharacterEnumeration, SharpDX.Mathematics.Interop.RawRectangleF>()
-            {
-                { CharacterEnumeration.Martin, new SharpDX.Mathematics.Interop.RawRectangleF(0, CHR_SLOT_HEIGHT * 0, CHR_SLOT_WIDTH, CHR_SLOT_HEIGHT) },
-                { CharacterEnumeration.Uji,    new SharpDX.Mathematics.Interop.RawRectangleF(0, CHR_SLOT_HEIGHT * 1, CHR_SLOT_WIDTH, CHR_SLOT_HEIGHT) },
-                { CharacterEnumeration.Diane,  new SharpDX.Mathematics.Interop.RawRectangleF(0, CHR_SLOT_HEIGHT * 2, CHR_SLOT_WIDTH, CHR_SLOT_HEIGHT) }
-            };
+            if (_characterToImageTranslation == null)
+                _characterToImageTranslation = new Dictionary<CharacterEnumeration, SharpDX.Mathematics.Interop.RawRectangleF>()
+                {
+                    { CharacterEnumeration.Martin, new SharpDX.Mathematics.Interop.RawRectangleF(0, CHR_SLOT_HEIGHT * 0, CHR_SLOT_WIDTH, CHR_SLOT_HEIGHT) },
+                    { CharacterEnumeration.Uji,    new SharpDX.Mathematics.Interop.RawRectangleF(0, CHR_SLOT_HEIGHT * 1, CHR_SLOT_WIDTH, CHR_SLOT_HEIGHT) },
+                    { CharacterEnumeration.Diane,  new SharpDX.Mathematics.Interop.RawRectangleF(0, CHR_SLOT_HEIGHT * 2, CHR_SLOT_WIDTH, CHR_SLOT_HEIGHT) }
+                };
         }
     }
 }
