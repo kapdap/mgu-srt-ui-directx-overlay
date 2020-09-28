@@ -61,7 +61,6 @@ namespace SRTPluginUIMGUDirectXOverlay
             CHR_SLOT_HEIGHT = (int)Math.Round(38d * _scale, MidpointRounding.AwayFromZero); // Individual character portrait slot height.
 
             GenerateClipping();
-
             InitializeOverlay();
 
             return 0;
@@ -86,12 +85,15 @@ namespace SRTPluginUIMGUDirectXOverlay
             _consolas32Bold?.Dispose();
 
             _characterSheet?.Dispose();
+            _characterToImageTranslation = null;
 
             _device = null; // We didn't create this object so we probably shouldn't be the one to dispose of it. Just set the variable to null so the reference isn't held.
             _graphics?.Dispose(); // This should technically be the one to dispose of the _device object since it was pulled from this instance.
             _graphics = null;
             _window?.Dispose();
             _window = null;
+
+            _isOverlayReady = false;
 
             return 0;
         }
@@ -112,7 +114,8 @@ namespace SRTPluginUIMGUDirectXOverlay
             }
             finally
             {
-                _graphics?.EndScene();
+                if (_graphics != null && _graphics.IsInitialized)
+                    _graphics.EndScene();
             }
 
             return 0;
@@ -181,7 +184,7 @@ namespace SRTPluginUIMGUDirectXOverlay
 
                 _characterSheet = ImageLoader.LoadBitmap(_device, Properties.Resources.portraits);
 
-                _isOverlayReady = _window.IsInitialized && _graphics.IsInitialized;
+                _isOverlayReady = true;
             }
 
             return _isOverlayReady;
@@ -189,10 +192,14 @@ namespace SRTPluginUIMGUDirectXOverlay
 
         private void UpdateOverlay()
         {
-            _window?.PlaceAbove(_gameWindowHandle);
+            if (_window != null && _window.IsInitialized)
+                _window.PlaceAbove(_gameWindowHandle);
 
-            _graphics?.BeginScene();
-            _graphics?.ClearScene();
+            if (_graphics != null && _graphics.IsInitialized)
+            {
+                _graphics.BeginScene();
+                _graphics.ClearScene();
+            }
         }
 
         private void RenderOverlay()
