@@ -20,7 +20,7 @@ namespace SRTPluginUIMGUDirectXOverlay
         private IGameMemoryMGU _gameMemory;
 
         // DirectX Overlay-specific.
-        public static OverlayWindow _window;
+        public static StickyWindow _window;
         public static Graphics _graphics;
         public static SharpDX.Direct2D1.WindowRenderTarget _device;
         public static IntPtr _gameWindowHandle;
@@ -127,10 +127,12 @@ namespace SRTPluginUIMGUDirectXOverlay
             devMode.dmSize = (short)Marshal.SizeOf<DEVMODE>();
             PInvoke.EnumDisplaySettings(null, -1, ref devMode);
 
-            _window = new GraphicsWindow(0, 0, devMode.dmPelsWidth, devMode.dmPelsHeight)
+            _window = new StickyWindow(0, 0, devMode.dmPelsWidth, devMode.dmPelsHeight)
             {
                 IsTopmost = true,
-                IsVisible = true
+                IsVisible = true,
+                BypassTopmost = true,
+                AttachToClientArea = true
             };
 
             _graphics = new Graphics()
@@ -149,6 +151,7 @@ namespace SRTPluginUIMGUDirectXOverlay
             {
                 _gameWindowHandle = new IntPtr(_gameMemory.Process.WindowHandle);
 
+                _window.ParentWindowHandle = _gameWindowHandle;
                 _window?.Create();
                 _window?.FitTo(_gameWindowHandle, true);
 
@@ -192,9 +195,6 @@ namespace SRTPluginUIMGUDirectXOverlay
 
         private void UpdateOverlay()
         {
-            if (_window != null && _window.IsInitialized)
-                _window.PlaceAbove(_gameWindowHandle);
-
             if (_graphics != null && _graphics.IsInitialized)
             {
                 _graphics.BeginScene();
@@ -206,8 +206,11 @@ namespace SRTPluginUIMGUDirectXOverlay
         {
             Point textSize;
 
-            int baseX = 10;
-            int baseY = 10;
+            int alignX = _graphics.Width - 216;
+            int alignY = 0;
+
+            int baseX = alignX - 10;
+            int baseY = alignY + 10;
 
             int YOffset = baseY;
             int YHeight = 29;
