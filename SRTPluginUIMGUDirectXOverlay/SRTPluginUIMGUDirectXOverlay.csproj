@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Platforms>x86</Platforms>
+    <Authors>Kapdap</Authors>
+    <Company>Kapdap</Company>
+    <Copyright>Copyright © 2020 Kapdap</Copyright>
+    <Product>Martian Gothic: Unification DirectX Overlay User Interface Plugin</Product>
+    <Description>A user-interface plugin to display the values provided by the Martian Gothic: Unification Memory Provider Plugin in a DirectX overlay.</Description>
+    <Version>0.9.0.0</Version>
+    <FileVersion>0.9.0.0</FileVersion>
+    <AssemblyVersion>0.9.0.0</AssemblyVersion>
+    <!-- netcoreapp3.1 had to be hardcoded here because this project reports $(TargetFramework) as netstandard2.0 (rightfully so) and I am not sure how this project's csproj can auto-detect another project's framework version to copy it to the appropriate folder so we're just... hardcoding this. -->
+    <CopyDestionationPath>$(SolutionDir)..\SRTHost\SRTHost\bin\$(Configuration)\netcoreapp3.1\plugins</CopyDestionationPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/kapdap/mgu-srt-ui-directx-overlay</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>speedrun</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GameOverlay.Net" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\mgu-srt-provider\SRTPluginProviderMGU\SRTPluginProviderMGU.csproj" />
+    <ProjectReference Include="..\..\ProcessMemory\ProcessMemory\ProcessMemory.csproj">
+      <Private>false</Private>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </ProjectReference>
+    <ProjectReference Include="..\..\SRTHost\SRTPluginBase\SRTPluginBase.csproj">
+      <Private>false</Private>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <Target Name="CopyOutputToDestination" AfterTargets="AfterBuild">
+    <ItemGroup>
+      <OutputFiles Include="$(OutDir)**\*"></OutputFiles>
+    </ItemGroup>
+    <Message Text="Copying files: @(OutputFiles)" Importance="high" />
+    <Copy SourceFiles="@(OutputFiles)" DestinationFolder="$(CopyDestionationPath)\$(ProjectName)\%(RecursiveDir)" OverwriteReadOnlyFiles="true"></Copy>
+  </Target>
+</Project>

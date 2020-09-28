@@ -1,0 +1,49 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30517.126
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SRTPluginUIMGUDirectXOverlay", "SRTPluginUIMGUDirectXOverlay\SRTPluginUIMGUDirectXOverlay.csproj", "{EE688214-F225-4A46-9ABF-463F9A1DD458}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SRTPluginProviderMGU", "..\mgu-srt-provider\SRTPluginProviderMGU\SRTPluginProviderMGU.csproj", "{2393C984-6FEE-466A-8DD8-875D9D6CF51C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SRTPluginBase", "..\SRTHost\SRTPluginBase\SRTPluginBase.csproj", "{2A4F6B29-5845-484B-AF44-2AD960835F64}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProcessMemory", "..\ProcessMemory\ProcessMemory\ProcessMemory.csproj", "{1A89B414-909C-4C51-931A-2739BBD25471}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SRTHost", "..\SRTHost\SRTHost\SRTHost.csproj", "{45AA5C4A-A3EF-4BDC-8581-04B4773E1C87}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EE688214-F225-4A46-9ABF-463F9A1DD458}.Debug|x86.ActiveCfg = Debug|x86
+		{EE688214-F225-4A46-9ABF-463F9A1DD458}.Debug|x86.Build.0 = Debug|x86
+		{EE688214-F225-4A46-9ABF-463F9A1DD458}.Release|x86.ActiveCfg = Release|x86
+		{EE688214-F225-4A46-9ABF-463F9A1DD458}.Release|x86.Build.0 = Release|x86
+		{2393C984-6FEE-466A-8DD8-875D9D6CF51C}.Debug|x86.ActiveCfg = Debug|x86
+		{2393C984-6FEE-466A-8DD8-875D9D6CF51C}.Debug|x86.Build.0 = Debug|x86
+		{2393C984-6FEE-466A-8DD8-875D9D6CF51C}.Release|x86.ActiveCfg = Release|x86
+		{2393C984-6FEE-466A-8DD8-875D9D6CF51C}.Release|x86.Build.0 = Release|x86
+		{2A4F6B29-5845-484B-AF44-2AD960835F64}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2A4F6B29-5845-484B-AF44-2AD960835F64}.Debug|x86.Build.0 = Debug|Any CPU
+		{2A4F6B29-5845-484B-AF44-2AD960835F64}.Release|x86.ActiveCfg = Release|Any CPU
+		{2A4F6B29-5845-484B-AF44-2AD960835F64}.Release|x86.Build.0 = Release|Any CPU
+		{1A89B414-909C-4C51-931A-2739BBD25471}.Debug|x86.ActiveCfg = Debug|x86
+		{1A89B414-909C-4C51-931A-2739BBD25471}.Debug|x86.Build.0 = Debug|x86
+		{1A89B414-909C-4C51-931A-2739BBD25471}.Release|x86.ActiveCfg = Release|x86
+		{1A89B414-909C-4C51-931A-2739BBD25471}.Release|x86.Build.0 = Release|x86
+		{45AA5C4A-A3EF-4BDC-8581-04B4773E1C87}.Debug|x86.ActiveCfg = Debug|x86
+		{45AA5C4A-A3EF-4BDC-8581-04B4773E1C87}.Debug|x86.Build.0 = Debug|x86
+		{45AA5C4A-A3EF-4BDC-8581-04B4773E1C87}.Release|x86.ActiveCfg = Release|x86
+		{45AA5C4A-A3EF-4BDC-8581-04B4773E1C87}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A5B0BFB8-975D-47B8-B783-404EF6607F9A}
+	EndGlobalSection
+EndGlobal
