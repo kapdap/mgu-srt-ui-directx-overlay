@@ -4,9 +4,12 @@ using SRTPluginBase;
 using SRTPluginProviderMGU;
 using SRTPluginProviderMGU.Enumerations;
 using SRTPluginProviderMGU.Models;
+using SRTPluginUIMGUDirectXOverlay.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Windows.Threading;
 
 namespace SRTPluginUIMGUDirectXOverlay
 {
@@ -19,11 +22,13 @@ namespace SRTPluginUIMGUDirectXOverlay
         private IPluginHostDelegates _hostDelegates;
         private IGameMemoryMGU _gameMemory;
 
-        // DirectX Overlay-specific.
-        public static OverlayWindow _window;
-        public static Graphics _graphics;
-        public static SharpDX.Direct2D1.WindowRenderTarget _device;
-        public static IntPtr _gameWindowHandle;
+        private OverlayWindow _window;
+        private Graphics _graphics;
+        private SharpDX.Direct2D1.WindowRenderTarget _device;
+
+        private IntPtr _windowEventHook;
+        private GCHandle _windowEventGCHandle;
+        private Dispatcher _windowEventDispatcher;
 
         private Font _consolas32Bold; // IGT
         private Font _consolas14Bold; // HP
@@ -32,11 +37,11 @@ namespace SRTPluginUIMGUDirectXOverlay
         private SolidBrush _black;
         private SolidBrush _white;
         private SolidBrush _green;
+        private SolidBrush _lawngreen;
+        private SolidBrush _red;
+        private SolidBrush _darkred;
         private SolidBrush _grey;
         private SolidBrush _darkergrey;
-        private SolidBrush _darkred;
-        private SolidBrush _red;
-        private SolidBrush _lawngreen;
         private SolidBrush _gold;
         private SolidBrush _goldenrod;
         private SolidBrush _violet;
@@ -48,8 +53,9 @@ namespace SRTPluginUIMGUDirectXOverlay
         private int CHR_SLOT_HEIGHT;
 
         private int _opacity = 128;
-        private double _scale = 1d;
+        private float _scale = 1f;
 
+        private bool _isOverlayInitialized;
         private bool _isOverlayReady;
 
         [STAThread]
@@ -60,22 +66,73 @@ namespace SRTPluginUIMGUDirectXOverlay
             CHR_SLOT_WIDTH = (int)Math.Round(38d * _scale, MidpointRounding.AwayFromZero); // Individual character portrait slot width.
             CHR_SLOT_HEIGHT = (int)Math.Round(38d * _scale, MidpointRounding.AwayFromZero); // Individual character portrait slot height.
 
-            GenerateClipping();
-            InitializeOverlay();
+            try
+            {
+                GenerateClipping();
+                InitializeOverlay();
+            }
+            catch (Exception ex)
+            {
+                _hostDelegates.ExceptionMessage(ex);
+                _characterToImageTranslation = null;
+
+                _graphics?.Dispose();
+                _graphics = null;
+                _window?.Dispose();
+                _window = null;
+
+                _isOverlayInitialized = false;
+                _isOverlayReady = false;
+
+                return 1;
+            }
+
+            try
+            {
+                Thread t = new Thread(new ThreadStart(() =>
+                {
+                    _windowEventDispatcher = Dispatcher.CurrentDispatcher;
+                    Dispatcher.Run();
+                }));
+
+                t.IsBackground = true;
+                t.SetApartmentState(ApartmentState.STA);
+                t.Start();
+            }
+            catch (Exception ex)
+            {
+                _hostDelegates.ExceptionMessage(ex);
+                _windowEventDispatcher = null;
+            }
 
             return 0;
         }
 
         public int Shutdown()
         {
+            try
+            {
+                if (_windowEventGCHandle.IsAllocated)
+                    _windowEventGCHandle.Free();
+
+                if (_windowEventHook != IntPtr.Zero)
+                    WinEventHook.WinEventUnhook(_windowEventHook);
+
+                _windowEventDispatcher?.InvokeShutdown();
+            }
+            catch (Exception ex)
+            {
+                _hostDelegates.ExceptionMessage(ex);
+            }
+
             _black?.Dispose();
             _white?.Dispose();
             _green?.Dispose();
+            _lawngreen?.Dispose();
             _grey?.Dispose();
             _darkergrey?.Dispose();
-            _darkred?.Dispose();
             _red?.Dispose();
-            _lawngreen?.Dispose();
+            _darkred?.Dispose();
             _gold?.Dispose();
             _goldenrod?.Dispose();
             _violet?.Dispose();
@@ -87,12 +144,16 @@ namespace SRTPluginUIMGUDirectXOverlay
             _characterSheet?.Dispose();
             _characterToImageTranslation = null;
 
-            _device = null; // We didn't create this object so we probably shouldn't be the one to dispose of it. Just set the variable to null so the reference isn't held.
-            _graphics?.Dispose(); // This should technically be the one to dispose of the _device object since it was pulled from this instance.
+            _windowEventHook = IntPtr.Zero;
+            _windowEventDispatcher = null;
+
+            _device = null;
+            _graphics?.Dispose();
             _graphics = null;
             _window?.Dispose();
             _window = null;
 
+            _isOverlayInitialized = false;
             _isOverlayReady = false;
 
             return 0;
@@ -112,6 +173,10 @@ namespace SRTPluginUIMGUDirectXOverlay
                 else
                     CreateOverlay();
             }
+            catch (Exception ex)
+            {
+                _hostDelegates.ExceptionMessage(ex);
+            }
             finally
             {
                 if (_graphics != null && _graphics.IsInitialized)
@@ -125,7 +190,7 @@ namespace SRTPluginUIMGUDirectXOverlay
         {
             DEVMODE devMode = default;
             devMode.dmSize = (short)Marshal.SizeOf<DEVMODE>();
-            PInvoke.EnumDisplaySettings(null, -1, ref devMode);
+            NativeWrappers.EnumDisplaySettings(null, -1, ref devMode);
 
             _window = new OverlayWindow(0, 0, devMode.dmPelsWidth, devMode.dmPelsHeight)
             {
@@ -141,16 +206,15 @@ namespace SRTPluginUIMGUDirectXOverlay
                 UseMultiThreadedFactories = false,
                 VSync = false
             };
+
+            _isOverlayInitialized = true;
         }
 
         private bool CreateOverlay()
         {
-            if (!_isOverlayReady && _gameMemory.Process.WindowHandle != 0)
+            if (_isOverlayInitialized && !_isOverlayReady && _gameMemory.Process.WindowHandle != IntPtr.Zero)
             {
-                _gameWindowHandle = new IntPtr(_gameMemory.Process.WindowHandle);
-
-                _window?.Create();
-                _window?.FitTo(_gameWindowHandle, true);
+                _window.Create();
 
                 _graphics.Width = _window.Width;
                 _graphics.Height = _window.Height;
@@ -160,27 +224,39 @@ namespace SRTPluginUIMGUDirectXOverlay
                 _window.SizeChanged += (object sender, OverlaySizeEventArgs e) =>
                     _graphics.Resize(_window.Width, _window.Height);
 
-                _window.VisibilityChanged += (object sender, OverlayVisibilityEventArgs e) =>
-                    WindowHelper.EnableBlurBehind(_gameWindowHandle);
+                _window.FitTo(_gameMemory.Process.WindowHandle, true);
 
-                // Get a refernence to the underlying RenderTarget from SharpDX. This'll be used to draw portions of images.
-                _device = (SharpDX.Direct2D1.WindowRenderTarget)typeof(Graphics).GetField("_device", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(_graphics);
+                if (_windowEventDispatcher != null)
+                    _windowEventDispatcher.Invoke(delegate
+                    {
+                        WinEventHook.WinEventDelegate windowEventDelegate = new WinEventHook.WinEventDelegate(MoveGameWindowEventCallback);
+                        _windowEventGCHandle = GCHandle.Alloc(windowEventDelegate);
+                        _windowEventHook = WinEventHook.WinEventHookOne(WinEventHook.SWEH_Events.EVENT_OBJECT_LOCATIONCHANGE,
+                                                                windowEventDelegate,
+                                                                (uint)_gameMemory.Process.Id,
+                                                                WinEventHook.GetWindowThread(_gameMemory.Process.WindowHandle));
+                    });
 
-                _consolas14Bold = _graphics?.CreateFont("Consolas", 14, true);
-                _consolas16Bold = _graphics?.CreateFont("Consolas", 16, true);
-                _consolas32Bold = _graphics?.CreateFont("Consolas", 32, true);
+                //Get a refernence to the underlying RenderTarget from SharpDX. This'll be used to draw portions of images.
+                _device = (SharpDX.Direct2D1.WindowRenderTarget)typeof(Graphics)
+                    .GetField("_device", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    .GetValue(_graphics);
 
-                _black = _graphics?.CreateSolidBrush(0, 0, 0, _opacity);
-                _white = _graphics?.CreateSolidBrush(255, 255, 255, _opacity);
-                _green = _graphics?.CreateSolidBrush(0, 128, 0, _opacity);
-                _grey = _graphics?.CreateSolidBrush(128, 128, 128, _opacity);
-                _darkergrey = _graphics?.CreateSolidBrush(60, 60, 60, _opacity);
-                _darkred = _graphics?.CreateSolidBrush(139, 0, 0, _opacity);
-                _red = _graphics?.CreateSolidBrush(255, 0, 0, _opacity);
-                _lawngreen = _graphics?.CreateSolidBrush(124, 252, 0, _opacity);
-                _gold = _graphics?.CreateSolidBrush(255, 215, 0, _opacity);
-                _goldenrod = _graphics?.CreateSolidBrush(218, 165, 32, _opacity);
-                _violet = _graphics?.CreateSolidBrush(238, 130, 238, _opacity);
+                _consolas14Bold = _graphics.CreateFont("Consolas", 14, true);
+                _consolas16Bold = _graphics.CreateFont("Consolas", 16, true);
+                _consolas32Bold = _graphics.CreateFont("Consolas", 32, true);
+
+                _black = _graphics.CreateSolidBrush(0, 0, 0, _opacity);
+                _white = _graphics.CreateSolidBrush(255, 255, 255, _opacity);
+                _green = _graphics.CreateSolidBrush(0, 128, 0, _opacity);
+                _lawngreen = _graphics.CreateSolidBrush(124, 252, 0, _opacity);
+                _red = _graphics.CreateSolidBrush(255, 0, 0, _opacity);
+                _darkred = _graphics.CreateSolidBrush(139, 0, 0, _opacity);
+                _grey = _graphics.CreateSolidBrush(128, 128, 128, _opacity);
+                _darkergrey = _graphics.CreateSolidBrush(60, 60, 60, _opacity);
+                _gold = _graphics.CreateSolidBrush(255, 215, 0, _opacity);
+                _goldenrod = _graphics.CreateSolidBrush(218, 165, 32, _opacity);
+                _violet = _graphics.CreateSolidBrush(238, 130, 238, _opacity);
 
                 _characterSheet = ImageLoader.LoadBitmap(_device, Properties.Resources.portraits);
 
@@ -192,14 +268,16 @@ namespace SRTPluginUIMGUDirectXOverlay
 
         private void UpdateOverlay()
         {
-            if (_window != null && _window.IsInitialized)
-                _window.PlaceAbove(_gameWindowHandle);
+            _window.PlaceAbove(_gameMemory.Process.WindowHandle);
 
-            if (_graphics != null && _graphics.IsInitialized)
-            {
-                _graphics.BeginScene();
-                _graphics.ClearScene();
-            }
+            if (_scale != 1f)
+                _device.Transform = new SharpDX.Mathematics.Interop.RawMatrix3x2(1f, 0f, 0f, 1f, 0f, 0f);
+
+            _graphics.BeginScene();
+            _graphics.ClearScene();
+
+            if (_scale != 1f)
+                _device.Transform = new SharpDX.Mathematics.Interop.RawMatrix3x2(_scale, 0f, 0f, _scale, 0f, 0f);
         }
 
         private void RenderOverlay()
@@ -254,22 +332,22 @@ namespace SRTPluginUIMGUDirectXOverlay
                 drawRegion.Bottom += drawRegion.Top;
 
                 if (_characterToImageTranslation.ContainsKey(character.Character))
-                    _device?.DrawBitmap(_characterSheet, drawRegion, 1f, SharpDX.Direct2D1.BitmapInterpolationMode.Linear, imageRegion);
+                    _device.DrawBitmap(_characterSheet, drawRegion, 1f, SharpDX.Direct2D1.BitmapInterpolationMode.Linear, imageRegion);
 
                 DrawProgressBar(_darkergrey, healthBrush, textX, textY, 172, 36, character.CurrentHP, character.MaximumHP);
-                _graphics?.DrawText(_consolas14Bold, _white, textX + 5, textY + 10, character.HealthMessage);
+                _graphics.DrawText(_consolas14Bold, _white, textX + 5, textY + 10, character.HealthMessage);
             }
 
             int timerX = baseX + 3;
             int timerY = YOffset += CHR_SLOT_HEIGHT + YSpace;
 
-            _graphics?.DrawText(_consolas32Bold, _white, timerX, timerY, _gameMemory.IGT.FormattedString);
+            _graphics.DrawText(_consolas32Bold, _white, timerX, timerY, _gameMemory.IGT.FormattedString);
             textSize = _graphics.MeasureString(_consolas32Bold, _gameMemory.IGT.FormattedString);
 
             int headerX = baseX + 3;
             int headerY = YOffset += (int)textSize.Y + YSpace;
 
-            _graphics?.DrawText(_consolas16Bold, _red, headerX, headerY, "Enemy HP");
+            _graphics.DrawText(_consolas16Bold, _red, headerX, headerY, "Enemy HP");
             textSize = _graphics.MeasureString(_consolas16Bold, "Enemy HP");
 
             YOffset += (int)textSize.Y - YHeight + 6;
@@ -284,7 +362,7 @@ namespace SRTPluginUIMGUDirectXOverlay
                 int healthY = YOffset += i > 0 ? YHeight : 0;
 
                 DrawProgressBar(_darkergrey, _darkred, healthX, healthY, 216, YHeight, enemy.CurrentHP, enemy.MaximumHP);
-                _graphics?.DrawText(_consolas14Bold, _red, healthX + 5, healthY + 5, enemy.HealthMessage);
+                _graphics.DrawText(_consolas14Bold, _red, healthX + 5, healthY + 5, enemy.HealthMessage);
             }
         }
 
@@ -306,11 +384,11 @@ namespace SRTPluginUIMGUDirectXOverlay
                 y + height
             );
 
-            _graphics?.FillRectangle(backBrush, backRect);
-            _graphics?.FillRectangle(foreBrush, foreRect);
+            _graphics.FillRectangle(backBrush, backRect);
+            _graphics.FillRectangle(foreBrush, foreRect);
         }
 
-        public void GenerateClipping()
+        private void GenerateClipping()
         {
             if (_characterToImageTranslation == null)
                 _characterToImageTranslation = new Dictionary<CharacterEnumeration, SharpDX.Mathematics.Interop.RawRectangleF>()
@@ -319,6 +397,20 @@ namespace SRTPluginUIMGUDirectXOverlay
                     { CharacterEnumeration.Uji,    new SharpDX.Mathematics.Interop.RawRectangleF(0, CHR_SLOT_HEIGHT * 1, CHR_SLOT_WIDTH, CHR_SLOT_HEIGHT) },
                     { CharacterEnumeration.Diane,  new SharpDX.Mathematics.Interop.RawRectangleF(0, CHR_SLOT_HEIGHT * 2, CHR_SLOT_WIDTH, CHR_SLOT_HEIGHT) }
                 };
+        }
+
+        protected void MoveGameWindowEventCallback(IntPtr hWinEventHook,
+                                    WinEventHook.SWEH_Events eventType,
+                                    IntPtr hWnd,
+                                    WinEventHook.SWEH_ObjectId idObject,
+                                    long idChild,
+                                    uint dwEventThread,
+                                    uint dwmsEventTime)
+        {
+            if (hWnd == _gameMemory.Process.WindowHandle &&
+                eventType == WinEventHook.SWEH_Events.EVENT_OBJECT_LOCATIONCHANGE &&
+                idObject == WinEventHook.SWEH_ObjectId.OBJID_WINDOW)
+                _window?.FitTo(_gameMemory.Process.WindowHandle, true);
         }
     }
 }

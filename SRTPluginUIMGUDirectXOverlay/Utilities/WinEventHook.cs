@@ -2,65 +2,10 @@
 using System.Runtime.InteropServices;
 using System.Security;
 
-namespace SRTPluginUIMGUDirectXOverlay
+namespace SRTPluginUIMGUDirectXOverlay.Utilities
 {
-    public static class PInvoke
-    {
-        [DllImport("user32.dll")]
-        public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct DEVMODE
-    {
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x20)]
-        public string dmDeviceName;
-
-        public short dmSpecVersion;
-        public short dmDriverVersion;
-        public short dmSize;
-        public short dmDriverExtra;
-        public int dmFields;
-        public int dmPositionX;
-        public int dmPositionY;
-        public int dmDisplayOrientation;
-        public int dmDisplayFixedOutput;
-        public short dmColor;
-        public short dmDuplex;
-        public short dmYResolution;
-        public short dmTTOption;
-        public short dmCollate;
-
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x20)]
-        public string dmFormName;
-
-        public short dmLogPixels;
-        public int dmBitsPerPel;
-        public int dmPelsWidth;
-        public int dmPelsHeight;
-        public int dmDisplayFlags;
-        public int dmDisplayFrequency;
-        public int dmICMMethod;
-        public int dmICMIntent;
-        public int dmMediaType;
-        public int dmDitherType;
-        public int dmReserved1;
-        public int dmReserved2;
-        public int dmPanningWidth;
-        public int dmPanningHeight;
-    }
-
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct RECT
-    {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
-    }
-
-    public class Hook
+    // https://stackoverflow.com/questions/48767318/move-window-when-external-applications-window-moves/48812831#48812831
+    public class WinEventHook
     {
         public static long SWEH_CHILDID_SELF = 0;
 
@@ -187,28 +132,22 @@ namespace SRTPluginUIMGUDirectXOverlay
                                                        WinEventHookInternalFlags);
         }
 
-        public static IntPtr WinEventHookOne(SWEH_Events _event, WinEventDelegate _delegate, uint idProcess, uint idThread)
-        {
-            return UnsafeNativeMethods.SetWinEventHook(_event, _event,
-                                                       IntPtr.Zero, _delegate,
-                                                       idProcess, idThread,
-                                                       WinEventHookInternalFlags);
-        }
+        public static IntPtr WinEventHookOne(SWEH_Events _event, WinEventDelegate _delegate, uint idProcess, uint idThread) =>
+            UnsafeNativeMethods.SetWinEventHook(_event, _event,
+                                                IntPtr.Zero, _delegate,
+                                                idProcess, idThread,
+                                                WinEventHookInternalFlags);
 
-        public static bool WinEventUnhook(IntPtr hWinEventHook)
-        {
-            return UnsafeNativeMethods.UnhookWinEvent(hWinEventHook);
-        }
+        public static bool WinEventUnhook(IntPtr hWinEventHook) =>
+            UnsafeNativeMethods.UnhookWinEvent(hWinEventHook);
 
-        public static uint GetWindowThread(IntPtr hWnd)
-        {
-            return UnsafeNativeMethods.GetWindowThreadProcessId(hWnd, IntPtr.Zero);
-        }
+        public static uint GetWindowThread(IntPtr hWnd) =>
+            UnsafeNativeMethods.GetWindowThreadProcessId(hWnd, IntPtr.Zero);
 
-        public static RECT GetWindowRect(IntPtr hWnd)
+        public static Rect GetWindowRect(IntPtr hWnd)
         {
-            RECT rect = new RECT();
-            bool _result = SafeNativeMethods.GetWindowRect(hWnd, ref rect);
+            Rect rect = new Rect();
+            SafeNativeMethods.GetWindowRect(hWnd, ref rect);
             return rect;
         }
     }
@@ -218,7 +157,7 @@ namespace SRTPluginUIMGUDirectXOverlay
     {
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool GetWindowRect(IntPtr hWnd, ref RECT lpRect);
+        public static extern bool GetWindowRect(IntPtr hWnd, ref Rect lpRect);
     }
 
     [SuppressUnmanagedCodeSecurity]
@@ -231,11 +170,20 @@ namespace SRTPluginUIMGUDirectXOverlay
         public static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr voidProcessId);
 
         [DllImport("user32.dll", SetLastError = false)]
-        public static extern IntPtr SetWinEventHook(Hook.SWEH_Events eventMin, Hook.SWEH_Events eventMax,
-                                                    IntPtr hmodWinEventProc, Hook.WinEventDelegate lpfnWinEventProc,
-                                                    uint idProcess, uint idThread, Hook.SWEH_dwFlags dwFlags);
+        public static extern IntPtr SetWinEventHook(WinEventHook.SWEH_Events eventMin, WinEventHook.SWEH_Events eventMax,
+                                                    IntPtr hmodWinEventProc, WinEventHook.WinEventDelegate lpfnWinEventProc,
+                                                    uint idProcess, uint idThread, WinEventHook.SWEH_dwFlags dwFlags);
 
         [DllImport("user32.dll", SetLastError = false)]
         public static extern bool UnhookWinEvent(IntPtr hWinEventHook);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Rect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
     }
 }
