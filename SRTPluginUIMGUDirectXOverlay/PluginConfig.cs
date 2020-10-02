@@ -8,11 +8,7 @@ namespace SRTPluginUIMGUDirectXOverlay
         private byte _opacity = 128;
         public byte Opacity
         {
-            get
-            {
-                SetField(ref _opacity, GetRange(_opacity, 1, 255));
-                return _opacity;
-            }
+            get => _opacity;
             set => SetField(ref _opacity, GetRange(value, 1, 255));
         }
 
