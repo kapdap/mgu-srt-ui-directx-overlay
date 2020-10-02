@@ -356,12 +356,12 @@ namespace SRTPluginUIMGUDirectXOverlay
             {
                 EnemyEntry enemy = _gameMemory.Enemy[i];
 
-                if (!enemy.IsAlive) continue;
+                if (enemy.IsEmpty) continue;
 
                 int healthX = baseX - 2;
                 int healthY = YOffset += i > 0 ? YHeight : 0;
 
-                DrawProgressBar(_darkergrey, _darkred, healthX, healthY, 216, YHeight, enemy.CurrentHP, enemy.MaximumHP);
+                DrawProgressBar(_darkergrey, _darkred, healthX, healthY, 216, YHeight, enemy.DisplayHP, enemy.MaximumHP);
                 _graphics.DrawText(_consolas14Bold, _red, healthX + 5, healthY + 5, enemy.HealthMessage);
             }
         }
