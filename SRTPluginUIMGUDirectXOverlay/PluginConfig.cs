@@ -1,26 +1,32 @@
 ﻿using SRTPluginProviderMGU.Models;
+using System;
 
 namespace SRTPluginUIMGUDirectXOverlay
 {
     public class PluginConfig : BaseNotifyModel
     {
-        internal int _opacity;
-        public int Opacity
+        private byte _opacity = 128;
+        public byte Opacity
         {
-            get => _opacity;
-            set => SetField(ref _opacity, value);
+            get
+            {
+                SetField(ref _opacity, GetRange(_opacity, 1, 255));
+                return _opacity;
+            }
+            set => SetField(ref _opacity, GetRange(value, 1, 255));
         }
-        internal float _scalingFactor;
+
+        private float _scalingFactor = 1f;
         public float ScalingFactor
         {
             get => _scalingFactor;
             set => SetField(ref _scalingFactor, value);
         }
 
-        public PluginConfig()
+        private byte GetRange(byte value, int min, int max)
         {
-            Opacity = 128;
-            ScalingFactor = 1f;
+            value = (byte)Math.Max(value, min);
+            return (byte)Math.Min(value, max);
         }
     }
 }
