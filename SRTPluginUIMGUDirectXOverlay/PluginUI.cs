@@ -13,11 +13,14 @@ using System.Windows.Threading;
 
 namespace SRTPluginUIMGUDirectXOverlay
 {
-    public class PluginUI : IPluginUI
+    public class PluginUI : PluginBase, IPluginUI
     {
-        internal static PluginInfo _info = new PluginInfo();
-        public IPluginInfo Info => _info;
         public string RequiredProvider => "SRTPluginProviderMGU";
+
+        internal static PluginInfo _info = new PluginInfo();
+        public override IPluginInfo Info => _info;
+
+        public static PluginConfig Config;
 
         private IPluginHostDelegates _hostDelegates;
         private IGameMemoryMGU _gameMemory;
@@ -52,19 +55,17 @@ namespace SRTPluginUIMGUDirectXOverlay
         private int CHR_SLOT_WIDTH;
         private int CHR_SLOT_HEIGHT;
 
-        private int _opacity = 128;
-        private float _scale = 1f;
-
         private bool _isOverlayInitialized;
         private bool _isOverlayReady;
 
         [STAThread]
-        public int Startup(IPluginHostDelegates hostDelegates)
+        public override int Startup(IPluginHostDelegates hostDelegates)
         {
             _hostDelegates = hostDelegates;
+            Config = LoadConfiguration<PluginConfig>();
 
-            CHR_SLOT_WIDTH = (int)Math.Round(38d * _scale, MidpointRounding.AwayFromZero); // Individual character portrait slot width.
-            CHR_SLOT_HEIGHT = (int)Math.Round(38d * _scale, MidpointRounding.AwayFromZero); // Individual character portrait slot height.
+            CHR_SLOT_WIDTH = (int)Math.Round(38d * Config.ScalingFactor, MidpointRounding.AwayFromZero); // Individual character portrait slot width.
+            CHR_SLOT_HEIGHT = (int)Math.Round(38d * Config.ScalingFactor, MidpointRounding.AwayFromZero); // Individual character portrait slot height.
 
             try
             {
@@ -108,8 +109,10 @@ namespace SRTPluginUIMGUDirectXOverlay
             return 0;
         }
 
-        public int Shutdown()
+        public override int Shutdown()
         {
+            SaveConfiguration(Config);
+
             try
             {
                 if (_windowEventGCHandle.IsAllocated)
@@ -246,17 +249,17 @@ namespace SRTPluginUIMGUDirectXOverlay
                 _consolas16Bold = _graphics.CreateFont("Consolas", 16, true);
                 _consolas32Bold = _graphics.CreateFont("Consolas", 32, true);
 
-                _black = _graphics.CreateSolidBrush(0, 0, 0, _opacity);
-                _white = _graphics.CreateSolidBrush(255, 255, 255, _opacity);
-                _green = _graphics.CreateSolidBrush(0, 128, 0, _opacity);
-                _lawngreen = _graphics.CreateSolidBrush(124, 252, 0, _opacity);
-                _red = _graphics.CreateSolidBrush(255, 0, 0, _opacity);
-                _darkred = _graphics.CreateSolidBrush(139, 0, 0, _opacity);
-                _grey = _graphics.CreateSolidBrush(128, 128, 128, _opacity);
-                _darkergrey = _graphics.CreateSolidBrush(60, 60, 60, _opacity);
-                _gold = _graphics.CreateSolidBrush(255, 215, 0, _opacity);
-                _goldenrod = _graphics.CreateSolidBrush(218, 165, 32, _opacity);
-                _violet = _graphics.CreateSolidBrush(238, 130, 238, _opacity);
+                _black = _graphics.CreateSolidBrush(0, 0, 0, Config.Opacity);
+                _white = _graphics.CreateSolidBrush(255, 255, 255, Config.Opacity);
+                _green = _graphics.CreateSolidBrush(0, 128, 0, Config.Opacity);
+                _lawngreen = _graphics.CreateSolidBrush(124, 252, 0, Config.Opacity);
+                _red = _graphics.CreateSolidBrush(255, 0, 0, Config.Opacity);
+                _darkred = _graphics.CreateSolidBrush(139, 0, 0, Config.Opacity);
+                _grey = _graphics.CreateSolidBrush(128, 128, 128, Config.Opacity);
+                _darkergrey = _graphics.CreateSolidBrush(60, 60, 60, Config.Opacity);
+                _gold = _graphics.CreateSolidBrush(255, 215, 0, Config.Opacity);
+                _goldenrod = _graphics.CreateSolidBrush(218, 165, 32, Config.Opacity);
+                _violet = _graphics.CreateSolidBrush(238, 130, 238, Config.Opacity);
 
                 _characterSheet = ImageLoader.LoadBitmap(_device, Properties.Resources.portraits);
 
@@ -270,14 +273,14 @@ namespace SRTPluginUIMGUDirectXOverlay
         {
             _window.PlaceAbove(_gameMemory.Process.WindowHandle);
 
-            if (_scale != 1f)
+            if (Config.ScalingFactor != 1f)
                 _device.Transform = new SharpDX.Mathematics.Interop.RawMatrix3x2(1f, 0f, 0f, 1f, 0f, 0f);
 
             _graphics.BeginScene();
             _graphics.ClearScene();
 
-            if (_scale != 1f)
-                _device.Transform = new SharpDX.Mathematics.Interop.RawMatrix3x2(_scale, 0f, 0f, _scale, 0f, 0f);
+            if (Config.ScalingFactor != 1f)
+                _device.Transform = new SharpDX.Mathematics.Interop.RawMatrix3x2(Config.ScalingFactor, 0f, 0f, Config.ScalingFactor, 0f, 0f);
         }
 
         private void RenderOverlay()
