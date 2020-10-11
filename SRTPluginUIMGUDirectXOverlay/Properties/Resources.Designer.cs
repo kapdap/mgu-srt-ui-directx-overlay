@@ -63,6 +63,16 @@ namespace SRTPluginUIMGUDirectXOverlay.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] objects {
+            get {
+                object obj = ResourceManager.GetObject("objects", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] portraits {
             get {
                 object obj = ResourceManager.GetObject("portraits", resourceCulture);
