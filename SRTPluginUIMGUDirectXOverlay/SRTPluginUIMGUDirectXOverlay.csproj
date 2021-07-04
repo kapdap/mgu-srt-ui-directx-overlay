@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0-windows</TargetFramework>
     <OutputType>Library</OutputType>
     <UseWPF>true</UseWPF>
     <Platforms>x86</Platforms>
@@ -9,22 +9,22 @@
     <Company>Kapdap</Company>
     <Product>Martian Gothic: Unification DirectX Overlay User Interface Plugin</Product>
     <Description>A user-interface plugin to display the values provided by the Martian Gothic: Unification Memory Provider Plugin in a DirectX overlay.</Description>
-    <Copyright>Copyright © 2020 Kapdap</Copyright>
+    <Copyright>Copyright © 2021 Kapdap</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/kapdap/mgu-srt-ui-directx-overlay</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>speedrun</PackageTags>
-    <Version>0.9.0.0</Version>
-    <FileVersion>0.9.0.0</FileVersion>
-    <AssemblyVersion>0.9.0.0</AssemblyVersion>
+    <Version>0.9.1.0</Version>
+    <FileVersion>0.9.1.0</FileVersion>
+    <AssemblyVersion>0.9.1.0</AssemblyVersion>
     <LangVersion>latest</LangVersion>
     <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
-    <CopyDestionationPath>$(SolutionDir)..\SRTHost\SRTHost\bin\$(Configuration)\netcoreapp3.1\plugins</CopyDestionationPath>
+    <CopyDestionationPath>$(SolutionDir)..\SRTHost\SRTHost\bin\$(Configuration)\net5.0-windows\plugins</CopyDestionationPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GameOverlay.Net" Version="4.3.0" />
+    <PackageReference Include="GameOverlay.Net" Version="4.3.1" />
   </ItemGroup>
 
   <ItemGroup>
